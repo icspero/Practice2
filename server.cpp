@@ -24,8 +24,8 @@ void handleInterrupt(int signal) {
 }
 
 void processClientConnection(int clientSocket, ostringstream& responseStream) {
-    char buffer[1024];
-    int bytesReceived;
+    char buffer[1024]; // для полученных данных от клиента
+    int bytesReceived; // кол-во полученных байт
 
     while (true) {
         memset(buffer, 0, sizeof(buffer)); // очистка буфера
@@ -44,8 +44,8 @@ void processClientConnection(int clientSocket, ostringstream& responseStream) {
         string clientMessage(buffer); // данные из буфера в строку
 
         // очистка потока перед новым выводом
-        responseStream.str("");   
-        responseStream.clear();
+        responseStream.str("");
+        responseStream.clear(); // очистка возможных флагов
 
         dbmsQueries(clientMessage, responseStream);
 
@@ -65,10 +65,10 @@ void processClientConnection(int clientSocket, ostringstream& responseStream) {
 int main() {
     int clientSocket;
     struct sockaddr_in serverAddress, clientAddress;
-    socklen_t clientAddressLen = sizeof(clientAddress);
+    socklen_t clientAddressLen = sizeof(clientAddress); // длина структуры
 
     // создание серверного сокета
-    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    serverSocket = socket(AF_INET, SOCK_STREAM, 0); // создание сокета с использованием IPv4(AF_INET) и TCP соединением(SOCK_STREAM)
     if (serverSocket < 0) {
         cerr << "Не удалось создать серверный сокет!" << endl;
         return -1;
@@ -79,7 +79,8 @@ int main() {
     serverAddress.sin_port = htons(7432); // преобразование порта в сетевой порядок байтов
     serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1"); // преобразование адреса в числовой формат
 
-    int reuseAddrOpt = 5;
+    // SO_REUSEADDR позволяет другим сокетам использовать тот же адрес и порт, даже если сокет по прежнему в TIME_WAIT
+    int reuseAddrOpt = 1;
     if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuseAddrOpt, sizeof(reuseAddrOpt)) < 0) {
         perror("Не удалось установить SO_REUSEADDR!");
         close(serverSocket);
@@ -104,11 +105,11 @@ int main() {
 
     cout << "Ожидание подключения клиентов (порт 7432)..." << endl;
 
-    signal(SIGINT, handleInterrupt);
+    signal(SIGINT, handleInterrupt); // устанавливаем обработчик сигнала SIGINT
 
     while (isRunning) {
-        // ожидание подключения клиента
-        clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddress, &clientAddressLen); // ожидает входящее соединение
+        // блокирует программу до подключения клиента
+        clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddress, &clientAddressLen); // ожидает входящее соединение от клиента
         if (clientSocket < 0) {
             if (!isRunning) break;
             cerr << "Ошибка при подключении клиента!" << endl;
@@ -119,8 +120,8 @@ int main() {
 
         // cоздание нового потока для каждого клиента
         thread clientThread(processClientConnection, clientSocket, ref(responseStream));
-        clientThread.detach(); // поток будет работать асинхронно(независимо от основного потока)
-    }                          // потоки обрабатывают клиентов параллельно
+        clientThread.detach(); // поток будет работать асинхронно(потоки обрабатывают клиентов параллельно), независимо от основного потока
+    }
 
     close(serverSocket);
     cout << endl << "Сервер завершил работу!" << endl;

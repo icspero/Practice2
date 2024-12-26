@@ -7,26 +7,27 @@
 
 using namespace std;
 
-#define MAX_BUFFER_SIZE 1024 // Размер буфера для получения данных
+#define MAX_BUFFER_SIZE 1024 // размер буфера для получения данных
 
 int main() {
     int socketDescriptor;  // дескриптор сокета(идентификатор)
-    struct sockaddr_in serverAddress;  // структура для хранения адреса сервера
+    struct sockaddr_in serverAddress;  // структура для хранения адреса и порта сервера
     char recvBuffer[MAX_BUFFER_SIZE];  // буфер для данных, получаемых от сервера
-    string userInput;       // ввод пользователя
+    string userInput; // ввод пользователя
 
     // создание tcp сокета
-    socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
+    socketDescriptor = socket(AF_INET, SOCK_STREAM, 0); // создание сокета с использованием IPv4(AF_INET) и TCP соединением(SOCK_STREAM)
     if (socketDescriptor == -1) {
         cerr << "Не удалось создать сокет!" << endl;
         return 1;
     }
 
     // настройка параметров подключения к серверу
-    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_family = AF_INET; // установка семейства адресов для сокета(IPv4)
     serverAddress.sin_port = htons(7432); // преобразование порта в сетевой порядок байтов
     serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1"); // преобразование адреса в числовой формат
 
+    // подключение клиентского сокета к серверу по адресу
     if (connect(socketDescriptor, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) == -1) {
         cerr << "Ошибка при подключении к серверу!" << endl;
         close(socketDescriptor);
@@ -69,23 +70,17 @@ int main() {
                 cout << "Сервер закрыл соединение!" << endl;
                 break;
             }
+            
+            recvBuffer[bytesReceived] = '\0'; // завершаем строку корректно
 
-            // Завершаем строку корректно
-            recvBuffer[bytesReceived] = '\0';
+            
+            response.append(recvBuffer); // добавляем полученные данные к общей строке
 
-            // Добавляем полученные данные к общей строке
-            response.append(recvBuffer);
-
-            // Проверка, если сервер закончил отправлять данные
-            // Вы можете использовать логическую проверку или просто размер данных,
-            // если это известно заранее (например, по размеру ответа или специальному маркеру)
-            // Здесь условие нужно адаптировать под ваш случай.
             if (bytesReceived < sizeof(recvBuffer) - 1) {
                 break;  // Если данных меньше чем размер буфера, предполагаем, что ответ завершен
             }
         }
 
-        // Выводим окончательный ответ
         cout << "Ответ от сервера: " << response << endl;
     }
 
